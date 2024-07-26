@@ -7,23 +7,6 @@ class Api extends Trongate {
     
     public function __construct() {
         parent::__construct();
-
-        if (defined('CORS_ENABLED') && CORS_ENABLED === true) {
-            $this->_define_cors_headers();
-        }
-    }
-
-    private function _define_cors_headers(): void
-    {
-        require_once __DIR__ . '/Cors.php';
-        $cors = new Cors(
-            allowedOriginsString: CORS_ALLOWED_ORIGINS,
-            allowedMethodsString: CORS_ALLOWED_METHODS,
-            allowedHeadersString: CORS_ALLOWED_HEADERS,
-            allowedCredentials: CORS_ALLOWED_CREDENTIALS
-        );
-
-        $cors->defineHeaders($_SERVER['HTTP_ORIGIN']);
     }
 
     /**

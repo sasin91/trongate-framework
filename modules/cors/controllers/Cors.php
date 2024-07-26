@@ -1,24 +1,36 @@
 <?php
 
-class Cors
+class Cors extends Trongate
 {
     const ALLOWED_ORIGINS = 'Access-Control-Allow-Origin';
     const ALLOWED_METHODS = 'Access-Control-Allow-Methods';
     const ALLOWED_HEADERS = 'Access-Control-Allow-Headers';
     const ALLOWED_CREDENTIALS = 'Access-Control-Allow-Credentials';
 
+    public string $allowedOriginsString = '';
+    public string $allowedMethodsString = '';
+    public string $allowedHeadersString = '';
+    public bool $allowedCredentials = false;
+
     protected array $allowedOrigins = [];
     protected array $allowedOriginsPatterns = [];
 
-    public function __construct(
-        protected string $allowedOriginsString = '',
-        protected string $allowedMethodsString = '',
-        protected string $allowedHeadersString = '',
-        protected bool $allowedCredentials = false
+    public function setup(
+        ?string $allowedOriginsString = '',
+        ?string $allowedMethodsString = '',
+        ?string $allowedHeadersString = '',
+        ?bool $allowedCredentials = false,
     ) {
+        $this->allowedOriginsString = $allowedOriginsString;
+        $this->allowedMethodsString = $allowedMethodsString;
+        $this->allowedHeadersString = $allowedHeadersString;
+        $this->allowedCredentials = $allowedCredentials;
+
         $this->gatherAllowedOrigins();
         $this->setAllowedMethods();
         $this->setAllowedHeaders();
+
+        return $this;
     }
 
     public function defineHeaders(string $origin): void
@@ -30,7 +42,7 @@ class Cors
         }
     }
 
-    public function match(string $origin): array
+    protected function match(string $origin): array
     {
         $headers = [
             self::ALLOWED_HEADERS => $this->allowedHeadersString,
