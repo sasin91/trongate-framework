@@ -1,13 +1,13 @@
 <?php
 
-// '/../vendor/autoload.php'
 use OpenSpout\Common\Entity\Cell;
 use OpenSpout\Common\Entity\Row;
+use OpenSpout\Common\Entity\Style\Style;
 use OpenSpout\Common\Exception\IOException;
 use OpenSpout\Writer\Exception\WriterException;
 use OpenSpout\Writer\Exception\WriterNotOpenedException;
-use OpenSpout\Writer\ODS\Writer;
 
+// '/../vendor/autoload.php'
 require_once __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'vendor' .  DIRECTORY_SEPARATOR . 'autoload.php';
 
 class Excel extends Trongate
@@ -17,18 +17,18 @@ class Excel extends Trongate
      *
      * @param iterable $data
      * @param string $output
-     * @param array<string> $cells An array of cell names
      * @param string $format
-     * @return void
-     * @throws WriterException @see $writer->addRow(...)
+     * @param callable|null $writerSetup
      * @throws IOException @see $writer->addRow(...)
+     * @throws WriterNotOpenedException
+     * @return void
      */
-    public function _export_data_to_browser(iterable $data, string $output, array $cells = [], string $format = 'xlsx'): void {
-        $writer = $this->_writer($format);
+    public function _export_data_to_browser(iterable $data, string $output, string $format = 'xlsx', callable $writerSetup = null): void {
+        $writer = $this->_writer($format, $writerSetup);
 
         $writer->openToBrowser($output);
 
-        $this->_add_rows($cells, $data, $writer);
+        $this->_add_rows($data, $writer);
 
         $writer->close();
 
@@ -40,94 +40,97 @@ class Excel extends Trongate
      *
      * @param iterable $data
      * @param string $output
-     * @param array<string> $cells An array of cell names
      * @param string $format
      * @return void
      * @throws WriterException @see $writer->addRow(...)
      * @throws IOException @see $writer->addRow(...)
      */
-    public function _export_data_to_file(iterable $data, string $output, array $cells = [], string $format = 'xlsx'): void {
+    public function _export_data_to_file(iterable $data, string $output, string $format = 'xlsx'): void {
         $writer = $this->_writer($format);
 
         $writer->openToFile($output);
 
-        $this->_add_rows($cells, $data, $writer);
+        $this->_add_rows($data, $writer);
 
         $writer->close();
     }
 
     /**
      * @param iterable $data
-     * @return array
-     */
-    protected function _attempt_infer_cell_names(iterable $data): array {
-        // We could cast the data to an array,
-        // but that would potentially spike memory if it's a large dataset.
-        if ($data instanceof Traversable) {
-            $iterator = $data instanceof Iterator
-                ? clone $data
-                : new IteratorIterator($data);
-
-            $iterator->rewind();
-
-            return array_keys($iterator->current());
-        }
-
-        return empty($data)
-            ? []
-            : array_keys($data[0]);
-    }
-
-    /**
-     * @param iterable $data
-     * @param array<string> $cell_names
      * @return Generator<Row>
      */
-    protected function _generate_rows(iterable $data, iterable $cell_names): Generator {
+    protected function _generate_rows(iterable $data): Generator {
         foreach ($data as $item) {
-            $cells = [];
+            $style = null;
 
-            foreach ($cell_names as $cell) {
-                $cells[] = Cell::fromValue($item[$cell]);
+            if (is_callable($item)) {
+                $style = new Style();
+
+                // nb: reassign $item to the result of the callable
+                $item = $item($style);
             }
 
-            yield new Row($cells);
+            $cells = [];
+
+            foreach ($item as $value) {
+                $style = null;
+
+                if (is_callable($value)) {
+                    $style = new Style();
+
+                    // nb: reassign $value to the result of the callable
+                    $value = $value($style);
+                }
+
+                $cells[] = Cell::fromValue($value, $style);
+            }
+
+            yield new Row($cells, $style);
         }
     }
 
     /**
      * @param string $format
-     * @return \OpenSpout\Writer\CSV\Writer|Writer|\OpenSpout\Writer\XLSX\Writer|void
+     * @param callable|null $setup
+     * @return \OpenSpout\Writer\CSV\Writer|Writer|\OpenSpout\Writer\XLSX\Writer
      */
-    private function _writer(string $format)
+    private function _writer(string $format, callable $setup = null): \OpenSpout\Writer\CSV\Writer|\OpenSpout\Writer\ODS\Writer|\OpenSpout\Writer\XLSX\Writer
     {
         assert(
             in_array($format, ['xlsx', 'csv', 'ods']),
             'Invalid format'
         );
 
-        return match ($format) {
-            'xlsx' => new \OpenSpout\Writer\XLSX\Writer(),
-            'csv' => new \OpenSpout\Writer\CSV\Writer(),
-            'ods' => new Writer(),
-        };
+        $setup = $setup ?? fn () => null;
+        
+        switch ($format) {
+            default:
+            case 'xlsx':
+                $options = new \OpenSpout\Writer\XLSX\Options();
+                $setup($options);
+                return new \OpenSpout\Writer\XLSX\Writer($options);
+                
+            case 'csv':
+                $options = new \OpenSpout\Writer\CSV\Options();
+                $setup($options);
+                return new \OpenSpout\Writer\CSV\Writer($options);
+            case 'ods':
+                $options = new \OpenSpout\Writer\ODS\Options();
+                $setup($options);
+                return new \OpenSpout\Writer\ODS\Writer($options);
+        }
     }
 
     /**
-     * @param array $cells
      * @param iterable $data
-     * @param \OpenSpout\Writer\XLSX\Writer|\OpenSpout\Writer\CSV\Writer|Writer $writer
+     * @param \OpenSpout\Writer\XLSX\Writer|\OpenSpout\Writer\CSV\Writer|\OpenSpout\Writer\ODS\Writer $writer
      * @return void
      * @throws IOException
      * @throws WriterNotOpenedException
      */
-    public function _add_rows(array $cells, iterable $data, \OpenSpout\Writer\XLSX\Writer|\OpenSpout\Writer\CSV\Writer|Writer $writer): void
+    public function _add_rows(iterable $data, \OpenSpout\Writer\XLSX\Writer|\OpenSpout\Writer\CSV\Writer|\OpenSpout\Writer\ODS\Writer $writer): void
     {
-        if (empty($cells)) {
-            $cells = $this->_attempt_infer_cell_names($data);
-        }
-
-        $rows = $this->_generate_rows($data, $cells);
+        $rows = $this->_generate_rows($data);
 
         foreach ($rows as $row) {
             $writer->addRow($row);
