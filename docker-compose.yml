@@ -1,0 +1,98 @@
+services:
+  php:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    container_name: trongate-php-fpm
+    volumes:
+      - ./:/var/www/html
+    environment:
+      - PHP_OPCACHE_VALIDATE_TIMESTAMPS=1
+      - PHP_OPCACHE_MEMORY_CONSUMPTION=128
+      - DATABASE_HOST=trongate-database
+      - DATABASE_USER=trongate
+      - DATABASE_PASSWORD=password
+      - DATABASE_NAME=trongate
+      - WEBSOCKET_URL=ws://localhost:8080/ws
+      - BASE_URL=http://localhost:8080/
+    networks:
+      - trongate-network
+    configs:
+      - source: php-fpm-config
+        target: /usr/local/etc/php-fpm.d/www.conf
+
+  websocket:
+    build:
+      context: ./
+      dockerfile: Dockerfile.websocket
+    container_name: trongate-websocket
+    ports:
+      - "8085:8085"
+    volumes:
+      - ./:/var/www
+    working_dir: /var/www
+    entrypoint: ["/usr/bin/supervisord"]
+    environment:
+      - PATH=/usr/bin:/usr/local/bin
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - WEBSOCKET_HOST=0.0.0.0
+      - WEBSOCKET_PORT=8085
+    configs:
+      - source: supervisord-config
+        target: /etc/supervisor/supervisord.conf
+    networks:
+      - trongate-network
+
+  nginx:
+    image: nginx:latest
+    container_name: trongate-nginx
+    ports:
+      - "8080:80"
+    volumes:
+      - ./:/var/www/html
+    depends_on:
+      - php
+    networks:
+      - trongate-network
+    configs:
+      - source: nginx-config
+        target: /etc/nginx/conf.d/app.conf
+
+  database:
+    image: mariadb:latest
+    container_name: trongate-database
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: trongate
+      MYSQL_USER: trongate
+      MYSQL_PASSWORD: password
+    volumes:
+      - mariadb_data:/var/lib/mysql
+      - ./setup.sql:/docker-entrypoint-initdb.d/setup.sql
+    networks:
+      - trongate-network
+
+  redis:
+    image: redis:latest
+    container_name: trongate-redis
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    networks:
+      - trongate-network
+
+volumes:
+  mariadb_data:
+  redis_data:
+
+networks:
+  trongate-network:
+
+configs:
+  php-fpm-config:
+    file: ./docker/php-fpm.conf
+  nginx-config:
+    file: ./docker/nginx.conf
+  supervisord-config:
+    file: ./docker/supervisord.conf
