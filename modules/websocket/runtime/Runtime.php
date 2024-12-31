@@ -5,7 +5,7 @@ require_once __DIR__ . '/Websocket_client_connection.php';
 require_once __DIR__ . '/Pub_sub_messaging.php';
 require_once __DIR__ . '/Events.php';
 
-class Websocket_server {
+class Runtime {
     use Websocket_frame_encoding;
     use Websocket_client_connection;
     use Pub_sub_messaging;

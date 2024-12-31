@@ -1,10 +1,9 @@
 <?php
 
-require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../config/websocket.php';
-require_once __DIR__ . '/runtime/Websocket_server.php';
+require_once __DIR__ . '/runtime/Runtime.php';
 
-$server = new Websocket_server(
+$server = new Runtime(
     host: WEBSOCKET_HOST,
     port: WEBSOCKET_PORT,
     redis_host: REDIS_HOST,
