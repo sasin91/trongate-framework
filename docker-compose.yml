@@ -3,6 +3,7 @@ services:
     build:
       context: ./
       dockerfile: Dockerfile
+      target: fpm
     container_name: trongate-php-fpm
     volumes:
       - ./:/var/www/html
@@ -24,14 +25,15 @@ services:
   websocket:
     build:
       context: ./
-      dockerfile: Dockerfile.websocket
+      dockerfile: Dockerfile
+      target: websocket
     container_name: trongate-websocket
     ports:
       - "8085:8085"
     volumes:
-      - ./:/var/www
-    working_dir: /var/www
-    entrypoint: ["/usr/bin/supervisord"]
+      - ./:/var/www/html
+    working_dir: /var/www/html
+    entrypoint: ["/usr/bin/supervisord", "-c", "/etc/supervisor.d/websocket.conf"]
     environment:
       - PATH=/usr/bin:/usr/local/bin
       - REDIS_HOST=redis
