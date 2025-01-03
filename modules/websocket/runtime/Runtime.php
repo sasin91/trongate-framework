@@ -117,11 +117,11 @@ class Runtime {
                 $this
             );
 
+            $this->clients->add($client);
+
             $this->fibers->enqueue($client->initialization_fiber());
             $this->fibers->enqueue($client->listener_fiber());
             $this->fibers->enqueue($client->ping_fiber());
-
-            $this->clients->add($client);
 
             stream_set_blocking($socket, false);
         }
