@@ -52,4 +52,8 @@ class Client_registry implements Countable, IteratorAggregate
     public function has(Client $client): bool {
         return isset($this->map[$client]);
     }
+
+    public function remove(Client $client): void {
+        unset($this->map[$client]);
+    }
 }

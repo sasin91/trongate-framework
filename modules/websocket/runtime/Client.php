@@ -222,8 +222,7 @@ final class Client implements ArrayAccess
      * @return void
      */
     protected function emit_user_offline(): void {
-        unset($this->clients[$this]);
-
+        $this->runtime->clients->remove($this);
         $this->runtime->messenger->broadcast_num_online();
     }
 

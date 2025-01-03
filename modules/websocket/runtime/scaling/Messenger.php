@@ -54,7 +54,7 @@ class Messenger
             $written = @fwrite($client->socket, $frame->payload);
 
             if ($written === false) {
-                unset($this->clients[$client]);
+                $this->clients->remove($client);
             }
         }
     }
