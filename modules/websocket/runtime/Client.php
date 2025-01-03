@@ -188,7 +188,7 @@ final class Client implements ArrayAccess
                     && $ping_diff > ($this->runtime->pingTimeout / 2)
                 ) {
                     if (!is_resource($this->socket)) {
-                        $this->emit_user_offline();
+                        $this->offline();
                         // Terminate fiber
                         return;
                     }
@@ -199,7 +199,7 @@ final class Client implements ArrayAccess
                     );
 
                     if ($ping === false) {
-                        $this->emit_user_offline();
+                        $this->offline();
                         // Terminate fiber
                         return;
                     }
@@ -221,7 +221,7 @@ final class Client implements ArrayAccess
      *
      * @return void
      */
-    protected function emit_user_offline(): void {
+    protected function offline(): void {
         $this->runtime->clients->remove($this);
 
         // avoid duplicate broadcasts: 
