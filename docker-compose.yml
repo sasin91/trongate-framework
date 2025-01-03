@@ -21,7 +21,8 @@ services:
     configs:
       - source: php-fpm-config
         target: /usr/local/etc/php-fpm.d/www.conf
-
+      - source: php-config
+        target: /usr/local/etc/php/conf.d/php.ini
   websocket:
     build:
       context: ./
@@ -43,6 +44,8 @@ services:
     configs:
       - source: supervisord-config
         target: /etc/supervisor/supervisord.conf
+      - source: php-config
+        target: /usr/local/etc/php/conf.d/php.ini
     networks:
       - trongate-network
 
@@ -92,6 +95,8 @@ networks:
   trongate-network:
 
 configs:
+  php-config:
+    file: ./docker/php.ini
   php-fpm-config:
     file: ./docker/php-fpm.conf
   nginx-config:
