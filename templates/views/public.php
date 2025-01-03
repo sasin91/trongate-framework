@@ -51,5 +51,17 @@
 		<ul auto-populate="true"></ul>
 	</div>
 	<script src="js/app.js"></script>
+	<script src="websocket_module/js/websocket.js"></script>
+    <script>
+        const online_count = document.querySelectorAll('.online_count');
+
+        const socket = new Socket(
+            `http://localhost:8080/ws?trongateToken=<?= $token ?? '' ?>&user_id=<?= $user_id ?? null ?>`
+        );
+
+        socket.onStateChange('num_online', (value) => {
+            console.log('ahoy', value)
+        });
+    </script>
 </body>
 </html>

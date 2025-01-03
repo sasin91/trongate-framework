@@ -1,39 +1,12 @@
 <?php
 
-require_once __DIR__ . '/Websocket_frame_encoding.php';
-require_once __DIR__ . '/Websocket_client_connection.php';
-require_once __DIR__ . '/Pub_sub_messaging.php';
-require_once __DIR__ . '/Events.php';
-
 class Runtime {
-    use Websocket_frame_encoding;
-    use Websocket_client_connection;
-    use Pub_sub_messaging;
-    use Events;
-
     /**
      * The server socket used for handling incoming connections.
      *
      * @var resource
      */
     private $server_socket;
-
-    /**
-     * List of client sockets and the last pong time
-     * Keyed by resource ID
-     *
-     * @TODO: This may get quite large, i may need to reduce memory footprint
-     * @var array<int, ['socket' => resource, 'last_pong' => int]>
-     */
-    protected array $clients = [];
-
-    /**
-     * The queue of connection handlers.
-     * They're processed in order of First in, First out
-     *
-     * @var SplQueue
-     */
-    private SplQueue $fibers;
 
     /**
      * Whether the program is running or not.
@@ -43,12 +16,13 @@ class Runtime {
     public bool $running = false;
     
     public function __construct(
-        string                    $host = '127.0.0.1',
-        int                       $port = 8085,
-        private readonly int      $timeout = 0,
-        private readonly int      $pingTimeout = 10,
-        protected readonly string $redis_host = '127.0.0.1',
-        protected readonly int    $redis_port = 6379,
+        public readonly Fibers           $fibers,
+        public readonly Client_registry $clients,
+        public readonly Messenger       $messenger,
+        string                          $host = '127.0.0.1',
+        int                             $port = 8085,
+        public readonly int             $timeout = 0,
+        public readonly int             $pingTimeout = 10,
     ) {
         // Create a TCP socket
         $this->server_socket = stream_socket_server(
@@ -62,12 +36,6 @@ class Runtime {
         }
 
         pcntl_async_signals(true);
-
-        $this->fibers = new SplQueue();
-        
-        $this->establish_publisher_connection();
-        $this->establish_subscriber_connection();
-        $this->subscribe_to_events();
     }
 
     public function listen(): void {
@@ -132,47 +100,31 @@ class Runtime {
     }
 
     /**
-     * Safely attempt to write the message
-     * 
-     * @param resource $fp 
-     * @param string $data 
-     * @return bool 
+     * Accepts new client connections and initializes the client session.
+     *
+     * @return void
+     *
+     * @throws Throwable if an error occurs during client acceptance or initialization
      */
-    protected function fwrite($fp, string $data): bool {
-        if (is_resource($fp) === false) {
-            return false;
-        }
+    public function accept_client_connection(): void {
+        $socket = @stream_socket_accept($this->server_socket, $this->timeout);
 
-        $totalBytes = strlen($data);
-        $writtenBytes = 0;
-        $maxRetries = 5;
-        $retries = 0;
-    
-        while ($writtenBytes < $totalBytes && $retries < $maxRetries) {
-            $result = @fwrite($fp, substr($data, $writtenBytes));
-    
-            if ($result === false) {
-                error_log("Error writing [$data] to socket.");
-                return false;
-            } elseif ($result === 0) {
-                error_log("Write returned 0 bytes; connection may be closed.");
-                return false;
-            }
-    
-            $writtenBytes += $result;
-    
-            if ($writtenBytes < $totalBytes) {
-                $retries++;
-                usleep(100000);
-            }
+        if ($socket) {
+            require_once __DIR__ . '/Client.php';
+
+            $client = new Client(
+                $socket, 
+                $this
+            );
+
+            $this->fibers->enqueue($client->initialization_fiber());
+            $this->fibers->enqueue($client->listener_fiber());
+            $this->fibers->enqueue($client->ping_fiber());
+
+            $this->clients->add($client);
+
+            stream_set_blocking($socket, false);
         }
-    
-        if ($writtenBytes < $totalBytes) {
-            error_log("Failed to write all bytes after retries.");
-            return false;
-        }
-    
-        return true;
     }
 
     /**
