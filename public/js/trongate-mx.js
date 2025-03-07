@@ -171,23 +171,30 @@ let trongateMXOpeningModal = false;
       }
     },
 
-    async viewTransition(element, callback) {
-      if (document.startViewTransition) {
-        const transition = element.getAttribute('mx-transition');
-
-        document.documentElement.dataset.transition = transition;
-
-        const viewTransition = document.startViewTransition(() => {
-          callback(element);
-
-          return Promise.resolve();
-        });
-
-        await viewTransition.finished;
-        delete document.documentElement.dataset.transition;
-      } else {
-        callback(element);
+    async viewTransition(element, callback = undefined) {
+      if (callback === undefined) {
+        callback = () => {
+          // no-op
+        };
       }
+
+      if (document.startViewTransition === undefined) {
+        callback(element);
+        return;
+      }
+
+      const transition = element.getAttribute('mx-transition');
+
+      document.documentElement.dataset.transition = transition;
+
+      const viewTransition = document.startViewTransition(() => {
+        callback(element);
+
+        return Promise.resolve();
+      });
+
+      await viewTransition.finished;
+      delete document.documentElement.dataset.transition;
     }
   };
 
@@ -1607,7 +1614,13 @@ let trongateMXOpeningModal = false;
   document.addEventListener("keydown", handleEscapeKey);
 
 
-  document.addEventListener("click", handleMxModalClick);
+  document.addEventListener("click", (event) => {
+    handleMxModalClick(event);
+
+    if (event.target && event.target.hasAttribute('mx-transition')) {
+      localStorage.setItem('mx-transition', event.target.getAttribute('mx-transition'));
+    }
+  });
 
   // Establish the target element when mouse down event happens.
   document.addEventListener("mousedown", (event) => {
@@ -1626,19 +1639,11 @@ let trongateMXOpeningModal = false;
   };
 
   window.addEventListener('pagereveal', async (event) => {
-    if (event.viewTransition) {
-      if (document.documentElement.dataset.transition === 'none') {
-        event.viewTransition.skipTransition();
-        return;
-      }
+    document.documentElement.dataset.transition = localStorage.getItem('mx-transition');
 
-      Utils.viewTransition(document.documentElement);
-    } else {
-      if (document.documentElement.hasAttribute('mx-transition')) {
-        document.documentElement.dataset.transition = document.documentElement.getAttribute('mx-transition');
-
-        Utils.viewTransition(document.documentElement);
-      }
+    if (document.documentElement.dataset.transition === 'none') {
+      event.viewTransition?.skipTransition();
+      return;
     }
   });
 })(window);
