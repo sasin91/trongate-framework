@@ -970,6 +970,108 @@ div.modal-body p.text-center {
     }
 }
 
+:root[data-transition="flow"] {
+    &::view-transition-old(page) {
+        animation: flow-out 350ms ease-in forwards;
+        transform-origin: center center;
+    }
+
+    &::view-transition-new(page) {
+        animation: flow-in 350ms ease-out forwards;
+        transform-origin: center center;
+    }
+}
+
+@keyframes flow-out {
+    from {
+        transform: scale(1) translateX(0); /* Initial state */
+        opacity: 1;
+    }
+    to {
+        transform: scale(0.7) translateX(-100%); /* Shrink and slide out */
+        opacity: 0;
+    }
+}
+
+@keyframes flow-in {
+    from {
+        transform: scale(0.7) translateX(100%); /* Start small and off-screen */
+        opacity: 0;
+    }
+    to {
+        transform: scale(1) translateX(0); /* Zoom in and slide to center */
+        opacity: 1;
+    }
+}
+
+:root[data-transition="slide-up"] {
+    &::view-transition-old(page) {
+        animation: slide-up-out 300ms ease-in forwards;
+        transform-origin: center center;
+    }
+
+    &::view-transition-new(page) {
+        animation: slide-up-in 300ms ease-out forwards;
+        transform-origin: center center;
+    }
+}
+
+@keyframes slide-up-out {
+    from {
+        transform: translateY(0); /* Initial position */
+        opacity: 1;
+    }
+    to {
+        transform: translateY(100%); /* Slide up and fade out */
+        opacity: 0;
+    }
+}
+
+@keyframes slide-up-in {
+    from {
+        transform: translateY(100%); /* Start from below the screen */
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0); /* Slide up to normal position */
+        opacity: 1;
+    }
+}
+
+:root[data-transition="slide-down"] {
+    &::view-transition-old(page) {
+        animation: slide-down-out 300ms ease-in forwards;
+        transform-origin: center center;
+    }
+
+    &::view-transition-new(page) {
+        animation: slide-down-in 300ms ease-out forwards;
+        transform-origin: center center;
+    }
+}
+
+@keyframes slide-down-out {
+    from {
+        transform: translateY(0); /* Initial position */
+        opacity: 1;
+    }
+    to {
+        transform: translateY(-100%); /* Slide down and fade out */
+        opacity: 0;
+    }
+}
+
+@keyframes slide-down-in {
+    from {
+        transform: translateY(-100%); /* Start from above the screen */
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0); /* Slide down to normal position */
+        opacity: 1;
+    }
+}
+
 :root[data-transition="reload"] {
 	&::view-transition-old(page) {
 		display: none;
