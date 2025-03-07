@@ -845,42 +845,93 @@ div.modal-body p.text-center {
 	}
 }
 
-/* Forward flip transition (like going to the next page) */
-:root[data-transition="flip"] {
-  perspective: 1200px;
-  
-  &::view-transition-old(page) {
-      animation-name: flipouttoleft;
-      animation-duration: 125ms;
-      backface-visibility: hidden;
-      transform-origin: center right;
-  }
-  
-  &::view-transition-new(page) {
-      animation-name: flipintoright;
-      animation-duration: 250ms;
-      backface-visibility: hidden;
-      transform-origin: center left;
-  }
+/* Flip Animations */
+@keyframes flip-in-right {
+    from {
+        transform: rotateY(90deg) scale(0.9);
+        opacity: 0;
+    }
+    to {
+        transform: rotateY(0) scale(1);
+        opacity: 1;
+    }
 }
 
-/* Reverse flip transition (like going back) */
+@keyframes flip-out-left {
+    from {
+        transform: rotateY(0) scale(1);
+        opacity: 1;
+    }
+    to {
+        transform: rotateY(-90deg) scale(0.9);
+        opacity: 0;
+    }
+}
+
+@keyframes flip-in-left {
+    from {
+        transform: rotateY(-90deg) scale(0.9);
+        opacity: 0;
+    }
+    to {
+        transform: rotateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes flip-out-right {
+    from {
+        transform: rotateY(0);
+        opacity: 1;
+    }
+    to {
+        transform: rotateY(90deg) scale(0.9);
+        opacity: 0;
+    }
+}
+
+/* Flip Transition (Default: Right) */
+:root[data-transition="flip"] {
+    &::view-transition-old(page),
+    &::view-transition-new(page) {
+        perspective: 1000px; /* Adds depth */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    &::view-transition-old(page) {
+        opacity: 0;
+        animation: flip-out-left 225ms ease-in;
+        transform-origin: center;
+    }
+    
+    &::view-transition-new(page) {
+        animation: flip-in-right 350ms ease-out;
+        transform-origin: center;
+    }
+}
+
+/* Flip Reverse (Left) */
 :root[data-transition="flip-reverse"] {
-  perspective: 1200px;
-  
-  &::view-transition-old(page) {
-      animation-name: flipouttoright;
-      animation-duration: 125ms;
-      backface-visibility: hidden;
-      transform-origin: center left;
-  }
-  
-  &::view-transition-new(page) {
-      animation-name: flipintoleft;
-      animation-duration: 250ms;
-      backface-visibility: hidden;
-      transform-origin: center right;
-  }
+    &::view-transition-old(page),
+    &::view-transition-new(page) {
+        perspective: 1000px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    &::view-transition-old(page) {
+        opacity: 0;
+        animation: flip-out-right 225ms ease-in;
+        transform-origin: center;
+    }
+
+    &::view-transition-new(page) {
+        animation: flip-in-left 350ms ease-out;
+        transform-origin: center;
+    }
 }
 
 :root[data-transition="reload"] {
