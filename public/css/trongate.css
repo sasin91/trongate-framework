@@ -424,7 +424,7 @@ div.modal-body p.text-center {
   font: inherit;
   font-size: 15px;
   margin: 0;
-  overflow: auto;
+  overfade-slide: auto;
   padding: 8px;
   display: block;
   border: 1px solid #ccc !important;
@@ -672,7 +672,7 @@ div.modal-body p.text-center {
 
 @media screen and (max-width: 550px) {
   button, .button { width: 100%; display: block; }
-  .modal { max-height: 85vh; overflow-y: auto; }
+  .modal { max-height: 85vh; overfade-slide-y: auto; }
   .modal-footer { flex-direction: column-reverse; }
   .modal-footer button:last-child { margin: 0 0 0 0.3em; }
   p.button-container { display: flex; flex-direction: column-reverse; }
@@ -924,6 +924,48 @@ div.modal-body p.text-center {
     }
     to {
         transform: rotateY(0deg);
+        opacity: 1;
+    }
+}
+
+:root[data-transition="fade-slide"] {
+    perspective: 2000px;
+
+    &::view-transition-old(page),
+    &::view-transition-new(page) {
+        transform-style: preserve-3d;
+        backface-visibility: hidden;
+    }
+
+    &::view-transition-old(page) {
+        animation: fade-slide-out 350ms ease-in forwards;
+        transform-origin: left center;
+    }
+
+    &::view-transition-new(page) {
+        animation: fade-slide-in 350ms ease-out forwards;
+        transform-origin: right center;
+    }
+}
+
+@keyframes fade-slide-out {
+    from {
+        transform: rotateY(0deg) translateX(0) scale(1);
+        opacity: 1;
+    }
+    to {
+        transform: rotateY(-30deg) translateX(-50%) scale(0.9); /* Move left & shrink */
+        opacity: 0;
+    }
+}
+
+@keyframes fade-slide-in {
+    from {
+        transform: rotateY(15deg) translateX(50%) scale(1.1); /* Slight skew & scale */
+        opacity: 0;
+    }
+    to {
+        transform: rotateY(0deg) translateX(0) scale(1);
         opacity: 1;
     }
 }
